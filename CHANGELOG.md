@@ -14,6 +14,7 @@
 - Fix(tui): change the progressbar to use less-than-full blocks for smoother display.
 - Fix(server): on rusty backend, update symphonia to fix various issues.
 - Fix(server): on rusty backend, update `rusty-libopus` to dynamic link without custom environment variable.
+- Feat(tui): add bilibili search and download support powered by `bpi-rs`, including a dedicated key binding.
 
 ### [V0.12.0]
 - Released on: October 10, 2025.

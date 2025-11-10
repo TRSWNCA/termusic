@@ -50,6 +50,8 @@ pub struct Keys {
     pub library_paste: BindingForEvent,
     pub library_search: BindingForEvent,
     pub library_search_youtube: BindingForEvent,
+    #[serde(default = "default_library_search_bilibili")]
+    pub library_search_bilibili: BindingForEvent,
     pub library_tag_editor_open: BindingForEvent,
     pub library_switch_root: BindingForEvent,
     pub library_add_root: BindingForEvent,
@@ -77,6 +79,13 @@ pub struct Keys {
     pub podcast_search_add_feed: BindingForEvent,
     pub podcast_refresh_feed: BindingForEvent,
     pub podcast_refresh_all_feeds: BindingForEvent,
+}
+
+fn default_library_search_bilibili() -> BindingForEvent {
+    BindingForEvent {
+        code: Key::Char('b'),
+        modifier: KeyModifiers::NONE,
+    }
 }
 
 impl Keys {
@@ -128,6 +137,7 @@ impl Keys {
             .chain(once(self.library_paste))
             .chain(once(self.library_search))
             .chain(once(self.library_search_youtube))
+            .chain(once(self.library_search_bilibili))
             .chain(once(self.library_tag_editor_open))
             .chain(once(self.library_switch_root))
             .chain(once(self.library_add_root))
@@ -713,6 +723,10 @@ impl Default for Keys {
             },
             library_search_youtube: BindingForEvent {
                 code: Key::Char('s'),
+                modifier: KeyModifiers::NONE,
+            },
+            library_search_bilibili: BindingForEvent {
+                code: Key::Char('b'),
                 modifier: KeyModifiers::NONE,
             },
             library_tag_editor_open: BindingForEvent {

@@ -289,6 +289,9 @@ impl Model {
             IdKey::Other(IdKeyOther::LibrarySearchYoutube) => {
                 keys.library_keys.youtube_search = binding;
             }
+            IdKey::Other(IdKeyOther::LibrarySearchBilibili) => {
+                keys.library_keys.bilibili_search = binding;
+            }
             IdKey::Other(IdKeyOther::LibraryTagEditor) => {
                 keys.library_keys.open_tag_editor = binding;
             }

@@ -33,6 +33,8 @@ pub enum Id {
     TagEditor(IdTagEditor),
     YoutubeSearchInputPopup,
     YoutubeSearchTablePopup,
+    BilibiliSearchInputPopup,
+    BilibiliSearchTablePopup,
     DatabaseAddConfirmPopup,
 }
 
@@ -209,6 +211,7 @@ pub enum IdKeyOther {
     LibraryPaste,
     LibrarySearch,
     LibrarySearchYoutube,
+    LibrarySearchBilibili,
     LibraryTagEditor,
 
     PlaylistShuffle,

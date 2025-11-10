@@ -1042,6 +1042,9 @@ impl KEModifierSelect {
             IdKey::Other(IdKeyOther::LibrarySearchYoutube) => {
                 keys.library_keys.youtube_search.mod_key()
             }
+            IdKey::Other(IdKeyOther::LibrarySearchBilibili) => {
+                keys.library_keys.bilibili_search.mod_key()
+            }
             IdKey::Other(IdKeyOther::LibraryTagEditor) => {
                 keys.library_keys.open_tag_editor.mod_key()
             }
@@ -2014,6 +2017,31 @@ impl ConfigLibrarySearchYoutube {
 }
 
 impl Component<Msg, UserEvent> for ConfigLibrarySearchYoutube {
+    fn on(&mut self, ev: Event<UserEvent>) -> Option<Msg> {
+        self.component.on(ev)
+    }
+}
+
+#[derive(MockComponent)]
+pub struct ConfigLibrarySearchBilibili {
+    component: KEModifierSelect,
+}
+
+impl ConfigLibrarySearchBilibili {
+    pub fn new(config: SharedTuiSettings) -> Self {
+        Self {
+            component: KEModifierSelect::new(
+                " Library Search Bilibili ",
+                IdKey::Other(IdKeyOther::LibrarySearchBilibili),
+                config,
+                Msg::ConfigEditor(ConfigEditorMsg::KeyFocusOther(KFMsg::Next)),
+                Msg::ConfigEditor(ConfigEditorMsg::KeyFocusOther(KFMsg::Previous)),
+            ),
+        }
+    }
+}
+
+impl Component<Msg, UserEvent> for ConfigLibrarySearchBilibili {
     fn on(&mut self, ev: Event<UserEvent>) -> Option<Msg> {
         self.component.on(ev)
     }
@@ -3122,6 +3150,11 @@ impl Model {
             Vec::new(),
         )?;
         self.app.remount(
+            Id::ConfigEditor(IdConfigEditor::KeyOther(IdKeyOther::LibrarySearchBilibili)),
+            Box::new(ConfigLibrarySearchBilibili::new(self.config_tui.clone())),
+            Vec::new(),
+        )?;
+        self.app.remount(
             Id::ConfigEditor(IdConfigEditor::KeyOther(IdKeyOther::LibraryTagEditor)),
             Box::new(ConfigLibraryTagEditor::new(self.config_tui.clone())),
             Vec::new(),
@@ -3448,6 +3481,9 @@ impl Model {
         )))?;
         self.app.umount(&Id::ConfigEditor(IdConfigEditor::KeyOther(
             IdKeyOther::LibrarySearchYoutube,
+        )))?;
+        self.app.umount(&Id::ConfigEditor(IdConfigEditor::KeyOther(
+            IdKeyOther::LibrarySearchBilibili,
         )))?;
         self.app.umount(&Id::ConfigEditor(IdConfigEditor::KeyOther(
             IdKeyOther::LibraryTagEditor,

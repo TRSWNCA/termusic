@@ -311,6 +311,7 @@ impl Model {
         storage.extend(Self::everywhere_popups());
         storage.extend(Self::delete_confirm_popups());
         storage.extend(Self::youtube_search_popups());
+        storage.extend(Self::bilibili_search_popups());
 
         storage.extend([
             SubClause::IsMounted(Id::GeneralSearchInput),
@@ -331,6 +332,15 @@ impl Model {
             SubClause::IsMounted(Id::YoutubeSearchInputPopup),
             SubClause::IsMounted(Id::YoutubeSearchTablePopup),
             SubClause::IsMounted(Id::YoutubeSearchTablePopup),
+        ]
+    }
+
+    #[inline]
+    fn bilibili_search_popups() -> [SubClause<Id>; 3] {
+        [
+            SubClause::IsMounted(Id::BilibiliSearchInputPopup),
+            SubClause::IsMounted(Id::BilibiliSearchTablePopup),
+            SubClause::IsMounted(Id::BilibiliSearchTablePopup),
         ]
     }
 

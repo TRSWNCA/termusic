@@ -663,6 +663,8 @@ pub struct KeysLibrary {
     pub search: KeyBinding,
     /// Key to open youtube search
     pub youtube_search: KeyBinding,
+    /// Key to open bilibili search
+    pub bilibili_search: KeyBinding,
     /// Key to open the tag editor on that node (only works for files)
     pub open_tag_editor: KeyBinding,
 }
@@ -688,6 +690,7 @@ impl Default for KeysLibrary {
             .into(),
             search: tuievents::Key::Char('/').into(),
             youtube_search: tuievents::Key::Char('s').into(),
+            bilibili_search: tuievents::Key::Char('b').into(),
             open_tag_editor: tuievents::Key::Char('t').into(),
         }
     }
@@ -707,6 +710,7 @@ impl CheckConflict for KeysLibrary {
 
             (&self.search, "search"),
             (&self.youtube_search, "youtube_search"),
+            (&self.bilibili_search, "bilibili_search"),
             (&self.open_tag_editor, "open_tag_editor"),
         }
     }
@@ -1923,7 +1927,7 @@ mod v1_interop {
                     adjust_offset_backwards: value.global_lyric_adjust_backward.into(),
                     cycle_frames: value.global_lyric_cycle.into(),
                 },
-                library_keys: KeysLibrary {
+                    library_keys: KeysLibrary {
                     // this is weird, but the previous implementation used "global_right" as the loading key to not conflict
                     load_track: value.global_right.into(),
                     load_dir: value.library_load_dir.into(),
@@ -1934,7 +1938,8 @@ mod v1_interop {
                     add_root: value.library_add_root.into(),
                     remove_root: value.library_remove_root.into(),
                     search: value.library_search.into(),
-                    youtube_search: value.library_search_youtube.into(),
+                      youtube_search: value.library_search_youtube.into(),
+                      bilibili_search: value.library_search_bilibili.into(),
                     open_tag_editor: value.library_tag_editor_open.into(),
                 },
                 playlist_keys: KeysPlaylist {
@@ -2104,9 +2109,10 @@ mod v1_interop {
                     tuievents::KeyModifiers::SHIFT,
                 )
                 .into(),
-                search: tuievents::Key::Char('/').into(),
-                youtube_search: tuievents::Key::Char('s').into(),
-                open_tag_editor: tuievents::Key::Char('t').into(),
+                  search: tuievents::Key::Char('/').into(),
+                  youtube_search: tuievents::Key::Char('s').into(),
+                  bilibili_search: tuievents::Key::Char('b').into(),
+                  open_tag_editor: tuievents::Key::Char('t').into(),
             };
             assert_eq!(converted.library_keys, expected_library_keys);
 

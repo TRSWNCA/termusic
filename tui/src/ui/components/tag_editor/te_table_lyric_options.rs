@@ -122,6 +122,12 @@ impl Component<Msg, UserEvent> for TETableLyricOptions {
                 }
                 CmdResult::None
             }
+            Event::Keyboard(k) if k == keys.library_keys.bilibili_search.get() => {
+                if let State::One(StateValue::Usize(index)) = self.state() {
+                    return Some(Msg::TagEditor(TEMsg::Download(index)));
+                }
+                CmdResult::None
+            }
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => {

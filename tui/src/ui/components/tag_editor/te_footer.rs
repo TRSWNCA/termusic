@@ -38,6 +38,13 @@ impl TEFooter {
                     ))
                     .bold()
                     .fg(config.settings.theme.library_highlight()),
+                    TextSpan::new(" / ").fg(config.settings.theme.library_foreground()),
+                    TextSpan::new(format!(
+                        "<{}>",
+                        config.settings.keys.library_keys.bilibili_search
+                    ))
+                    .bold()
+                    .fg(config.settings.theme.library_highlight()),
                 ],
             )),
         }

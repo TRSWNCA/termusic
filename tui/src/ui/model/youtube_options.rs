@@ -17,7 +17,7 @@ use ytd_rs::{Arg, YoutubeDL};
 
 use super::Model;
 use crate::ui::ids::Id;
-use crate::ui::msg::{Msg, YSMsg};
+use crate::ui::msg::{BSMsg, Msg, YSMsg};
 
 #[expect(dead_code)]
 static RE_FILENAME: LazyLock<Regex> =
@@ -242,7 +242,12 @@ impl Model {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn youtube_dl(&mut self, url: &str) -> Result<()> {
+    pub fn download_with_ytdlp(
+        &mut self,
+        url: &str,
+        label: &str,
+        context: DownloadContext,
+    ) -> Result<()> {
         let mut path: PathBuf = std::env::temp_dir();
         if let Ok(State::One(StateValue::String(node_id))) = self.app.state(&Id::Library) {
             path = get_parent_folder(Path::new(&node_id)).to_path_buf();
@@ -273,13 +278,14 @@ impl Model {
         let tx = self.tx_to_main.clone();
 
         // avoid full string clones when sending via a channel
-        let url: Arc<str> = Arc::from(url);
+        let url: Arc<str> = Arc::from(url.to_owned());
+        let label = label.to_string();
 
         thread::spawn(move || -> Result<()> {
-            tx.send(Msg::YoutubeSearch(YSMsg::Download(YTDLMsg::Start(
+            tx.send(context.wrap(YTDLMsg::Start(
                 url.clone(),
-                "youtube music".to_string(),
-            ))))
+                label.clone(),
+            )))
             .ok();
             // start download
             let download = ytd.download();
@@ -287,18 +293,15 @@ impl Model {
             // check what the result is and print out the path to the download or the error
             match download {
                 Ok(result) => {
-                    tx.send(Msg::YoutubeSearch(YSMsg::Download(YTDLMsg::Success(
-                        url.clone(),
-                    ))))
-                    .ok();
+                    tx.send(context.wrap(YTDLMsg::Success(url.clone()))).ok();
                     // here we extract the full file name from download output
                     if let Some(file_fullname) =
                         extract_filepath(result.output(), &path.to_string_lossy())
                     {
-                        tx.send(Msg::YoutubeSearch(YSMsg::Download(YTDLMsg::Completed(
+                        tx.send(context.wrap(YTDLMsg::Completed(
                             url,
                             Some(file_fullname.clone()),
-                        ))))
+                        )))
                         .ok();
 
                         // here we remove downloaded live_chat.json file
@@ -306,28 +309,28 @@ impl Model {
 
                         embed_downloaded_lrc(&path, &file_fullname);
                     } else {
-                        tx.send(Msg::YoutubeSearch(YSMsg::Download(YTDLMsg::Completed(
-                            url, None,
-                        ))))
+                        tx.send(context.wrap(YTDLMsg::Completed(url, None)))
                         .ok();
                     }
                 }
                 Err(e) => {
-                    tx.send(Msg::YoutubeSearch(YSMsg::Download(YTDLMsg::Err(
+                    tx.send(context.wrap(YTDLMsg::Err(
                         url.clone(),
-                        "youtube music".to_string(),
+                        label.clone(),
                         e.to_string(),
-                    ))))
+                    )))
                     .ok();
-                    tx.send(Msg::YoutubeSearch(YSMsg::Download(YTDLMsg::Completed(
-                        url, None,
-                    ))))
+                    tx.send(context.wrap(YTDLMsg::Completed(url, None)))
                     .ok();
                 }
             }
             Ok(())
         });
         Ok(())
+    }
+
+    pub fn youtube_dl(&mut self, url: &str) -> Result<()> {
+        self.download_with_ytdlp(url, "youtube music", DownloadContext::Youtube)
     }
 }
 
@@ -351,6 +354,21 @@ pub enum YTDLMsg {
     ///
     /// `(Url, Title, ErrorAsString)`
     Err(YTDLMsgURL, String, String),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DownloadContext {
+    Youtube,
+    Bilibili,
+}
+
+impl DownloadContext {
+    fn wrap(self, msg: YTDLMsg) -> Msg {
+        match self {
+            DownloadContext::Youtube => Msg::YoutubeSearch(YSMsg::Download(msg)),
+            DownloadContext::Bilibili => Msg::BilibiliSearch(BSMsg::Download(msg)),
+        }
+    }
 }
 
 // This just parsing the output from youtubedl to get the audio path

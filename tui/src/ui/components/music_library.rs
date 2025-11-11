@@ -13,7 +13,7 @@ use tuirealm::{AttrValue, Attribute, Component, Event, MockComponent, State, Sta
 
 use crate::ui::ids::Id;
 use crate::ui::model::{DownloadTracker, Model, TxToMain, UserEvent};
-use crate::ui::msg::{DeleteConfirmMsg, GSMsg, LIMsg, Msg, PLMsg, RecVec, TEMsg, YSMsg};
+use crate::ui::msg::{BSMsg, DeleteConfirmMsg, GSMsg, LIMsg, Msg, PLMsg, RecVec, TEMsg, YSMsg};
 use crate::ui::tui_cmd::TuiCmd;
 use crate::utils::get_pin_yin;
 
@@ -227,6 +227,9 @@ impl Component<Msg, UserEvent> for MusicLibrary {
 
             Event::Keyboard(keyevent) if keyevent == keys.library_keys.youtube_search.get() => {
                 return Some(Msg::YoutubeSearch(YSMsg::InputPopupShow));
+            }
+            Event::Keyboard(keyevent) if keyevent == keys.library_keys.bilibili_search.get() => {
+                return Some(Msg::BilibiliSearch(BSMsg::InputPopupShow));
             }
             Event::Keyboard(keyevent) if keyevent == keys.library_keys.open_tag_editor.get() => {
                 let current_node = self.component.tree_state().selected().unwrap();

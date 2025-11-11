@@ -11,11 +11,11 @@ use tuirealm::Update;
 use tuirealm::props::{AttrValue, Attribute};
 
 use crate::ui::ids::Id;
-use crate::ui::model::youtube_options::YTDLMsg;
+use crate::ui::model::youtube_options::{DownloadContext, YTDLMsg};
 use crate::ui::msg::{
-    CoverDLResult, DBMsg, DeleteConfirmMsg, ErrorPopupMsg, GSMsg, HelpPopupMsg, LIMsg, LyricMsg,
-    MainLayoutMsg, Msg, NotificationMsg, PCMsg, PLMsg, PlayerMsg, QuitPopupMsg, SavePlaylistMsg,
-    ServerReqResponse, XYWHMsg, YSMsg,
+    BSMsg, CoverDLResult, DBMsg, DeleteConfirmMsg, ErrorPopupMsg, GSMsg, HelpPopupMsg, LIMsg,
+    LyricMsg, MainLayoutMsg, Msg, NotificationMsg, PCMsg, PLMsg, PlayerMsg, QuitPopupMsg,
+    SavePlaylistMsg, ServerReqResponse, XYWHMsg, YSMsg,
 };
 use crate::ui::tui_cmd::TuiCmd;
 use crate::ui::{Model, model::TermusicLayout};
@@ -54,6 +54,10 @@ impl Update<Msg> for Model {
             Msg::HelpPopup(msg) => self.update_help_popup_msg(&msg),
             Msg::YoutubeSearch(msg) => {
                 self.update_youtube_search(msg);
+                None
+            }
+            Msg::BilibiliSearch(msg) => {
+                self.update_bilibili_search(msg);
                 None
             }
             Msg::TagEditor(msg) => {
@@ -729,6 +733,66 @@ impl Model {
                 self.mount_error_popup(anyhow!("Youtube search fail: {e}"));
             }
             YSMsg::Download(msg) => self.update_ys_download_msg(msg),
+        }
+    }
+
+    fn update_bilibili_search(&mut self, msg: BSMsg) {
+        match msg {
+            BSMsg::InputPopupShow => {
+                self.mount_bilibili_search_input();
+            }
+            BSMsg::InputPopupCloseCancel => {
+                if self.app.mounted(&Id::BilibiliSearchInputPopup) {
+                    self.app.umount(&Id::BilibiliSearchInputPopup).ok();
+                }
+            }
+            BSMsg::InputPopupCloseOk(input) => {
+                if self.app.mounted(&Id::BilibiliSearchInputPopup) {
+                    self.app.umount(&Id::BilibiliSearchInputPopup).ok();
+                }
+                if input.starts_with("http") {
+                    if let Err(e) =
+                        self.download_with_ytdlp(&input, "bilibili", DownloadContext::Bilibili)
+                    {
+                        self.mount_error_popup(e.context("bilibili download"));
+                    }
+                } else {
+                    self.mount_bilibili_search_table();
+                    self.bilibili_options_search(input);
+                }
+            }
+            BSMsg::TablePopupCloseCancel => {
+                self.umount_bilibili_search_table_popup();
+            }
+            BSMsg::ReqNextPage => {
+                self.bilibili_options_next_page();
+            }
+            BSMsg::ReqPreviousPage => {
+                self.bilibili_options_prev_page();
+            }
+            BSMsg::PageLoaded(data) => {
+                self.bilibili_options.data = data;
+                self.sync_bilibili_options();
+            }
+            BSMsg::PageLoadError(err) => {
+                self.mount_error_popup(anyhow!(err));
+            }
+            BSMsg::TablePopupCloseOk(index) => {
+                if let Err(e) = self.bilibili_options_download(index) {
+                    self.library_reload_with_node_focus(None);
+                    self.mount_error_popup(e.context("bilibili download"));
+                }
+            }
+            BSMsg::SearchSuccess(options) => {
+                self.bilibili_options = options;
+                self.sync_bilibili_options();
+                self.redraw = true;
+            }
+            BSMsg::SearchFail(e) => {
+                self.redraw = true;
+                self.mount_error_popup(anyhow!("Bilibili search fail: {e}"));
+            }
+            BSMsg::Download(msg) => self.update_ys_download_msg(msg),
         }
     }
 

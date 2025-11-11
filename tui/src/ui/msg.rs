@@ -11,6 +11,7 @@ use termusiclib::songtag::{SongtagSearchResult, TrackDLMsg};
 use crate::ui::components::TETrack;
 use crate::ui::ids::{IdCEGeneral, IdCETheme, IdConfigEditor, IdKey, IdKeyGlobal, IdKeyOther};
 use crate::ui::model::youtube_options::{YTDLMsg, YoutubeData, YoutubeOptions};
+use crate::ui::model::bilibili_options::{BilibiliData, BilibiliOptions};
 
 /// Main message type that encapsulates everything else.
 // Note that the style is for each thing to have a sub-type, unless it is top-level like "ForceRedraw".
@@ -27,7 +28,8 @@ pub enum Msg {
     Podcast(PCMsg),
     SavePlaylist(SavePlaylistMsg),
     TagEditor(TEMsg),
-    YoutubeSearch(YSMsg),
+      YoutubeSearch(YSMsg),
+      BilibiliSearch(BSMsg),
     Xywh(XYWHMsg),
     LyricMessage(LyricMsg),
     DeleteConfirm(DeleteConfirmMsg),
@@ -303,6 +305,7 @@ pub const KFOTHER_FOCUS_ORDER: &[IdKey] = &[
     IdKey::Other(IdKeyOther::LibraryPaste),
     IdKey::Other(IdKeyOther::LibrarySearch),
     IdKey::Other(IdKeyOther::LibrarySearchYoutube),
+    IdKey::Other(IdKeyOther::LibrarySearchBilibili),
     IdKey::Other(IdKeyOther::LibraryTagEditor),
     // playlist keys
     IdKey::Other(IdKeyOther::PlaylistShuffle),
@@ -441,6 +444,32 @@ pub enum YSMsg {
     ///
     /// `(ErrorAsString)`
     YoutubeSearchFail(String),
+
+    Download(YTDLMsg),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BSMsg {
+    InputPopupShow,
+    InputPopupCloseCancel,
+    InputPopupCloseOk(String),
+
+    ReqNextPage,
+    ReqPreviousPage,
+    PageLoaded(BilibiliData),
+    /// Indicates that the search page load has failed, with error message.
+    ///
+    /// `(ErrorAsString)`
+    PageLoadError(String),
+
+    TablePopupCloseCancel,
+    TablePopupCloseOk(usize),
+
+    SearchSuccess(BilibiliOptions),
+    /// Indicates that the bilibili search has failed, with error message.
+    ///
+    /// `(ErrorAsString)`
+    SearchFail(String),
 
     Download(YTDLMsg),
 }

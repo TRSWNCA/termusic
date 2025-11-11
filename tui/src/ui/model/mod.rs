@@ -33,6 +33,7 @@ use crate::ui::Application;
 use crate::ui::ids::Id;
 use crate::ui::model::ports::stream_events::{PortStreamEvents, WrappedStreamEvents};
 use crate::ui::model::youtube_options::YoutubeOptions;
+use crate::ui::model::bilibili_options::BilibiliOptions;
 use crate::ui::msg::{Msg, SearchCriteria};
 #[cfg(all(feature = "cover-ueberzug", not(target_os = "windows")))]
 use crate::ui::ueberzug::UeInstance;
@@ -46,6 +47,7 @@ mod update;
 mod user_events;
 mod view;
 pub mod youtube_options;
+pub mod bilibili_options;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TermusicLayout {
@@ -320,6 +322,7 @@ pub struct Model {
     pub xywh: xywh::Xywh,
 
     youtube_options: YoutubeOptions,
+    bilibili_options: BilibiliOptions,
     pub songtag_options: Vec<SongTag>,
     pub download_tracker: DownloadTracker,
     /// Taskpool to limit number of active network requests
@@ -451,6 +454,7 @@ impl Model {
                 yanked_node_id: None,
             },
             youtube_options: YoutubeOptions::default(),
+            bilibili_options: BilibiliOptions::default(),
             #[cfg(all(feature = "cover-ueberzug", not(target_os = "windows")))]
             ueberzug_instance,
             songtag_options: vec![],

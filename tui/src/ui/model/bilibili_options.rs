@@ -1,10 +1,11 @@
-use std::future::Future;
 use std::time::Duration;
 
 use anyhow::{Result, anyhow, bail};
 use termusiclib::bilibili::{BilibiliPage, BilibiliVideo, SearchSession};
 use termusiclib::track::DurationFmtShort;
 use tuirealm::props::{Alignment, AttrValue, Attribute, TableBuilder, TextSpan};
+use tokio::runtime::Handle;
+use tokio::task;
 
 use super::{Model, youtube_options::DownloadContext};
 use crate::ui::ids::Id;
@@ -57,43 +58,28 @@ impl BilibiliOptions {
         self.data.total_pages
     }
 
-    pub fn get_prev_page(
-        &self,
-    ) -> Option<impl Future<Output = Result<BilibiliData>> + Send + 'static> {
+    pub fn prev_page_request(&self) -> Option<(SearchSession, u32)> {
         if self.data.page <= 1 {
             return None;
         }
-
-        let target_page = self.data.page - 1;
         let session = self.session.clone()?;
-        Some(async move {
-            let page = session.fetch_page(target_page).await?;
-            Ok(BilibiliData::from(page))
-        })
+        Some((session, self.data.page - 1))
     }
 
-    pub fn get_next_page(
-        &self,
-    ) -> Option<impl Future<Output = Result<BilibiliData>> + Send + 'static> {
+    pub fn next_page_request(&self) -> Option<(SearchSession, u32)> {
         if self.data.page >= self.data.total_pages {
             return None;
         }
-
-        let target_page = self.data.page + 1;
         let session = self.session.clone()?;
-        Some(async move {
-            let page = session.fetch_page(target_page).await?;
-            Ok(BilibiliData::from(page))
-        })
+        Some((session, self.data.page + 1))
     }
 }
 
 impl Model {
     pub fn bilibili_options_download(&mut self, index: usize) -> Result<()> {
         if let Ok(item) = self.bilibili_options.get_by_index(index) {
-            if let Err(e) =
-                self.download_with_ytdlp(&item.url, "bilibili", DownloadContext::Bilibili)
-            {
+            let url = item.url.clone();
+            if let Err(e) = self.download_with_ytdlp(&url, "bilibili", DownloadContext::Bilibili) {
                 bail!("Download error: {e}");
             }
         }
@@ -102,8 +88,9 @@ impl Model {
 
     pub fn bilibili_options_search(&mut self, keyword: String) {
         let tx = self.tx_to_main.clone();
-        tokio::spawn(async move {
-            match SearchSession::new(&keyword).await {
+        let handle = Handle::current();
+        task::spawn_blocking(move || {
+            match handle.block_on(SearchSession::new(&keyword)) {
                 Ok((session, page)) => {
                     let options = BilibiliOptions {
                         data: BilibiliData::from(page),
@@ -123,12 +110,13 @@ impl Model {
     pub fn bilibili_options_prev_page(&self) {
         let tx_to_main = self.tx_to_main.clone();
 
-        let Some(fut) = self.bilibili_options.get_prev_page() else {
+        let Some((session, target_page)) = self.bilibili_options.prev_page_request() else {
             return;
         };
 
-        tokio::task::spawn(async move {
-            match fut.await {
+        let handle = Handle::current();
+        task::spawn_blocking(move || {
+            match handle.block_on(session.fetch_page(target_page)) {
                 Ok(data) => {
                     let _ = tx_to_main.send(Msg::BilibiliSearch(BSMsg::PageLoaded(data)));
                 }
@@ -144,12 +132,13 @@ impl Model {
     pub fn bilibili_options_next_page(&mut self) {
         let tx_to_main = self.tx_to_main.clone();
 
-        let Some(fut) = self.bilibili_options.get_next_page() else {
+        let Some((session, target_page)) = self.bilibili_options.next_page_request() else {
             return;
         };
 
-        tokio::task::spawn(async move {
-            match fut.await {
+        let handle = Handle::current();
+        task::spawn_blocking(move || {
+            match handle.block_on(session.fetch_page(target_page)) {
                 Ok(data) => {
                     let _ = tx_to_main.send(Msg::BilibiliSearch(BSMsg::PageLoaded(data)));
                 }

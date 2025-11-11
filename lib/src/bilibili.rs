@@ -1,14 +1,9 @@
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result, anyhow, bail};
-use bpi_rs::{
-    BpiClient,
-    search::{
-        result::Video as ApiVideo,
-        search_params::{Duration as ApiDuration, SearchOrder},
-    },
-};
+use bpi_rs::BpiClient;
 use regex::Regex;
+use serde::Deserialize;
 
 /// Information about a single video returned by a Bilibili search.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -70,45 +65,32 @@ static TAG_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<[^>]*>").expe
 async fn fetch_page(keyword: &str, page: i32) -> Result<BilibiliPage> {
     let client = BpiClient::new();
     let response = client
-        .search_video(
-            keyword,
-            Some(SearchOrder::TotalRank),
-            Some(ApiDuration::All),
-            None,
-            Some(page),
-        )
+        .search_video(keyword, None, None, None, Some(page))
         .await?;
 
-    let data = response
-        .data
+    let raw = serde_json::to_value(response).context("Serialize bilibili response")?;
+    let data_value = raw
+        .get("data")
+        .cloned()
         .ok_or_else(|| anyhow!("No search data returned from Bilibili"))?;
 
-    let results = data.result.unwrap_or_default();
-    let videos = results.into_iter().map(convert_video).collect::<Vec<_>>();
+    let data: SearchDataValue = serde_json::from_value(data_value)
+        .context("Failed to decode bilibili search payload")?;
 
-    let page = u32::try_from(data.page).unwrap_or(1).max(1);
-    let total_pages = u32::try_from(data.num_pages).unwrap_or(page).max(1);
+    let page = data.page.max(1);
+    let total_pages = data.num_pages.max(1);
+
+    let videos = data
+        .result
+        .into_iter()
+        .filter_map(convert_video_value)
+        .collect();
 
     Ok(BilibiliPage {
         items: videos,
         page,
         total_pages,
     })
-}
-
-fn convert_video(video: ApiVideo) -> BilibiliVideo {
-    let title = clean_text(&video.title);
-    let author = clean_text(&video.author);
-    let duration_seconds = parse_duration(&video.duration).unwrap_or_default();
-    let url = format!("https://www.bilibili.com/video/{}", video.bvid);
-
-    BilibiliVideo {
-        title,
-        duration_seconds,
-        bvid: video.bvid,
-        author,
-        url,
-    }
 }
 
 fn clean_text(input: &str) -> String {
@@ -142,6 +124,47 @@ fn decode_basic_entities(input: &str) -> String {
     output = output.replace("&quot;", "\"");
     output = output.replace("&#39;", "'");
     output
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct SearchDataValue {
+    #[serde(default)]
+    page: u32,
+    #[serde(default, rename = "numPages")]
+    num_pages: u32,
+    #[serde(default)]
+    result: Vec<VideoValue>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct VideoValue {
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    duration: String,
+    #[serde(default)]
+    bvid: String,
+    #[serde(default)]
+    author: String,
+}
+
+fn convert_video_value(video: VideoValue) -> Option<BilibiliVideo> {
+    if video.bvid.is_empty() {
+        return None;
+    }
+
+    let title = clean_text(&video.title);
+    let author = clean_text(&video.author);
+    let duration_seconds = parse_duration(&video.duration).unwrap_or_default();
+    let url = format!("https://www.bilibili.com/video/{}", video.bvid);
+
+    Some(BilibiliVideo {
+        title,
+        duration_seconds,
+        bvid: video.bvid,
+        author,
+        url,
+    })
 }
 
 #[cfg(test)]
